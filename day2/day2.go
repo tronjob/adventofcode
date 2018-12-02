@@ -9,7 +9,7 @@ import (
 
 var twoLetter = 0
 var threeLetter = 0
-var strings = make([]string, 100)
+var strings []string
 
 type closeString struct {
 	a   string
@@ -26,6 +26,7 @@ func dealWithIt(err error) {
 func part1() {
 	f, err := os.Open("input.txt")
 	dealWithIt(err)
+	strings = make([]string, 0)
 	in := bufio.NewScanner(f)
 
 	for in.Scan() {
@@ -59,9 +60,6 @@ func part1() {
 
 func compareStrings(s1 string, s2 string) int {
 	dif := 0
-	if len(s1) != len(s2) {
-		log.Fatal("String size not the same!")
-	}
 	for i, c := range s1 {
 		if c != rune(s2[i]) {
 			dif++
@@ -71,10 +69,7 @@ func compareStrings(s1 string, s2 string) int {
 }
 
 func compareWithAll(str string, i int, strings []string, comp closeString) closeString {
-	ideb := 0
 	for j, candidate := range strings {
-		fmt.Printf(" Candidate %s str %s cycle %d\n", candidate, str, ideb)
-		ideb++
 		if i == j {
 			continue
 		}
@@ -101,7 +96,6 @@ func commonLetters(a string, b string) string {
 func part2() {
 	comp := closeString{"", "", 0}
 	for i, str := range strings {
-		fmt.Printf("cycle comparing index %d str %s with all\n", i, str)
 		comp = compareWithAll(str, i, strings, comp)
 	}
 	fmt.Println(commonLetters(comp.a, comp.b))
@@ -109,6 +103,5 @@ func part2() {
 
 func main() {
 	part1()
-	cenas()
 	part2()
 }
