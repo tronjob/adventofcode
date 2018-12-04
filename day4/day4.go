@@ -48,10 +48,7 @@ func getGuardList() []int {
 
 func addActivity(timeString string, guardAction string) {
 	r, _ := regexp.Compile("(?m)^Guard #([0-9]+) begins shift$")
-	t, e := time.Parse(dateLayout, timeString)
-	if e != nil {
-		log.Fatal(e)
-	}
+	t, _ := time.Parse(dateLayout, timeString)
 
 	if r.MatchString(guardAction) {
 		matches := r.FindStringSubmatch(guardAction)
