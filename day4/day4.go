@@ -165,8 +165,8 @@ func main() {
 		r := regexp.MustCompile("(?m)^\\[([-0-9]+ [0-9]{2}:[0-9]{2})\\] ([a-zA-Z0-9# ]+)$")
 		matches := r.FindStringSubmatch(line)
 		addActivity(matches[1], matches[2])
-		sort.Slice(guardLog, func(a, b int) bool { return guardLog[a].timestamp.Before(guardLog[b].timestamp) })
 	}
+	sort.Slice(guardLog, func(a, b int) bool { return guardLog[a].timestamp.Before(guardLog[b].timestamp) })
 	part1()
 	part2()
 
