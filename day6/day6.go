@@ -20,6 +20,7 @@ type mapCoord struct {
 	minDistIndex int // index of the nearest point
 	nearestPoint coord
 	equidistant  bool
+	init         bool
 }
 
 var infinityMap [][]mapCoord
@@ -47,21 +48,21 @@ func initMap() { //setup start coordinates in map
 				y: y,
 			},
 			equidistant: false,
+			init:        false,
 		}
 
 	}
-
 }
 
-func calcPointMinDist(workerNum int, coords []coord, wg *sync.WaitGroup, ch chan bool) { //gets distance to a set of points for every element in the matrix and updates the matrix
+func calcPointMinDist(workerNum int, start int, end int, coords [50]coord, wg *sync.WaitGroup, ch chan bool) { //gets distance to a set of points for every element in the matrix and updates the matrix
 	defer wg.Done()
 	fmt.Println("Worker reporting : ", workerNum)
-	for i := range infinityMap {
+	for i := start; i < end; i++ {
 		for j := range infinityMap[i] {
 			for k := range coords {
 				//critical zone
-				ch <- true
-				if infinityMap[i][j].minDist == 0 && infinityMap[i][j].minDist != -1 { //coordinate not initialized and not start point
+				//ch <- true
+				if !infinityMap[i][j].init && infinityMap[i][j].minDist != -1 { //coordinate not initialized and not start point
 					infinityMap[i][j] = mapCoord{
 						minDist:      math.MaxInt64,
 						minDistIndex: -1,
@@ -70,26 +71,27 @@ func calcPointMinDist(workerNum int, coords []coord, wg *sync.WaitGroup, ch chan
 							y: -1,
 						},
 						equidistant: false,
+						init:        true,
 					}
 				}
 
-				if infinityMap[i][j].minDist != -1 { //nao e uma coordenada input
-					if manhattanDistance(coords[k].x, coords[k].y, i, j) == infinityMap[i][j].minDist { //ponto equidistante
+				if infinityMap[i][j].minDist != -1 { //not a start coordinate
+					dist := manhattanDistance(coords[k].x, i, coords[k].y, j)
+					if dist == infinityMap[i][j].minDist { // equidistant with previous point
 						infinityMap[i][j].equidistant = true
 					} else {
-						dist := manhattanDistance(coords[k].x, coords[k].y, i, j)
-						if !infinityMap[i][j].equidistant && dist < infinityMap[i][j].minDist { //dist e menor que a minima ja encontrada para algum ponto
+						if !infinityMap[i][j].equidistant && dist < infinityMap[i][j].minDist { //not equidistant with any other point + new min distance
 							infinityMap[i][j].minDist = dist
 							infinityMap[i][j].minDistIndex = k
 							infinityMap[i][j].nearestPoint = coords[k]
 						}
 					}
 				} else {
-					<-ch
+					//<-ch
 					continue
 				}
 				//critical zone end
-				<-ch
+				//<-ch
 			}
 		}
 	}
@@ -99,9 +101,39 @@ func printMap() {
 	for i := range infinityMap {
 		for j := range infinityMap[i] {
 			fmt.Print(i, j)
-			fmt.Printf("minDist %d, minDistIndex: %d nearestPointX: %d nearestPontY: %d equidistant: %t\n", infinityMap[i][j].minDist, infinityMap[i][j].minDistIndex, infinityMap[i][j].nearestPoint.x, infinityMap[i][j].nearestPoint.y, infinityMap[i][j].equidistant)
+			fmt.Printf("minDist %d, minDistIndex: %d nearestPointX: %d nearestPontY: %d equidistant: %t init: %t\n", infinityMap[i][j].minDist, infinityMap[i][j].minDistIndex, infinityMap[i][j].nearestPoint.x, infinityMap[i][j].nearestPoint.y, infinityMap[i][j].equidistant, infinityMap[i][j].init)
 		}
 	}
+}
+
+func calcMaxArea(coords [50]coord) int {
+	maxArea := math.MinInt64
+	for k := range coords {
+		infiniteArea := false
+		currentArea := 0
+		for i := range infinityMap {
+			for j := range infinityMap[i] {
+				if infinityMap[i][j].nearestPoint == coords[k] && !infinityMap[i][j].equidistant { //
+					if i == 0 || i == len(infinityMap)-1 || j == 0 || j == len(infinityMap[i])-1 { //edge
+						infiniteArea = true
+						break
+					}
+					currentArea++
+				}
+				if infiniteArea {
+					break
+				}
+			}
+			if infiniteArea {
+				break
+			}
+		}
+		if !infiniteArea && currentArea > maxArea {
+			fmt.Printf("Area of (%d,%d): %d\n", coords[k].x, coords[k].y, currentArea)
+			maxArea = currentArea
+		}
+	}
+	return maxArea
 }
 
 func main() {
@@ -121,15 +153,18 @@ func main() {
 	}
 	initMap()
 	nworkers := 10
-	div := len(coords) / nworkers
+	div := len(infinityMap) / nworkers //50
 	ch := make(chan bool, 1)
+	fmt.Printf("Firing up %d workers\n\n", nworkers)
 	for i := 0; i < nworkers; i++ {
-		startIndex := i * div // 0 5 10 15 ... 45
-		endIndex := startIndex + div
+		startIndex := i * div        // 0 50 100 150 ... 450
+		endIndex := startIndex + div //50 100 ... 500
+		fmt.Printf("Firing up worker %d with params: start %d end %d\n", i, startIndex, endIndex)
 		wg.Add(1)
-		go calcPointMinDist(i, coords[startIndex:endIndex], &wg, ch)
+		go calcPointMinDist(i, startIndex, endIndex, coords, &wg, ch)
 	}
 	wg.Wait()
+	fmt.Println(calcMaxArea(coords))
 	//printMap()
 }
 
