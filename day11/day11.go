@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"time"
 )
 
 var theGrid [300][300]int
@@ -80,9 +81,15 @@ func findSumAny(sn int) (int, int, int) {
 	maxPowaaa := math.MinInt64
 	maxX, maxY := 0, 0
 	maxDelta := 0
+	var efficientDelta int
 	for i := 0; i < 300; i++ {
 		for j := 0; j < 300; j++ {
-			for delta := 1; delta < 300; delta++ {
+			if i > j {
+				efficientDelta = 300 - i
+			} else {
+				efficientDelta = 300 - j
+			}
+			for delta := 1; delta < efficientDelta; delta++ {
 				localPower := getGridPowerLevel(i+1, j+1, sn, delta)
 				if localPower > maxPowaaa {
 					maxX = i + 1
@@ -97,13 +104,17 @@ func findSumAny(sn int) (int, int, int) {
 }
 
 func part1(sn int) {
+	start := time.Now()
 	maxX, maxY, maxPower := findSum(sn)
 	fmt.Println(maxX, maxY, maxPower)
+	fmt.Println("Part 1 took ", time.Since(start))
 }
 
 func part2(sn int) {
+	start := time.Now()
 	maxX, maxY, maxDelta := findSumAny(sn)
 	fmt.Println(maxX, maxY, maxDelta)
+	fmt.Println("Part2 took ", time.Since(start))
 }
 func main() {
 	f, _ := os.Open("input.txt")
